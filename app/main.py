@@ -1,11 +1,21 @@
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+
 import streamlit as st
 from tools.core.text_tools import TextCaseConverter
 from utils.registry import registry
 from tools.core.url_tools import URLEncoder
+from tools.core.json_tools import JSONTool
+from tools.core.crypto_tools import CryptoTool
+from tools.core.class_generator import ClassGenerator
 
 # Register tools
 registry.register(TextCaseConverter)
 registry.register(URLEncoder)
+registry.register(JSONTool)
+registry.register(CryptoTool)
+registry.register(ClassGenerator)
 
 def main():
     st.set_page_config(

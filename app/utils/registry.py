@@ -1,5 +1,5 @@
 from typing import Dict, Type
-from ..tools.base import BaseTool
+from app.tools.base import BaseTool
 
 class ToolRegistry:
     _instance = None

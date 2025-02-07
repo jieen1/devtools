@@ -3,10 +3,15 @@ from typing import Dict, Any
 from ..utils.registry import registry
 from app.tools.core.text_tools import TextCaseConverter
 from app.tools.core.url_tools import URLEncoder
-
+from app.tools.core.json_tools import JSONTool
+from app.tools.core.crypto_tools import CryptoTool
+from app.tools.core.class_generator import ClassGenerator
 
 registry.register(TextCaseConverter)
 registry.register(URLEncoder)
+registry.register(JSONTool)
+registry.register(CryptoTool)
+registry.register(ClassGenerator)
 app = FastAPI(title="DevTools Hub API")
 
 @app.get("/tools")
