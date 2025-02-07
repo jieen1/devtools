@@ -1,13 +1,14 @@
 from typing import Dict, Type
-from tools.base import BaseTool
+from ..tools.base import BaseTool
 
 class ToolRegistry:
     _instance = None
     _tools: Dict[str, Type[BaseTool]] = {}
 
     def __new__(cls):
-        if cls._instance is None:
+        if not cls._instance:
             cls._instance = super().__new__(cls)
+            cls._instance._tools = {}
         return cls._instance
 
     def register(self, tool_class: Type[BaseTool]) -> None:

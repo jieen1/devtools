@@ -1,7 +1,12 @@
 from fastapi import FastAPI, HTTPException
 from typing import Dict, Any
 from ..utils.registry import registry
+from app.tools.core.text_tools import TextCaseConverter
+from app.tools.core.url_tools import URLEncoder
 
+
+registry.register(TextCaseConverter)
+registry.register(URLEncoder)
 app = FastAPI(title="DevTools Hub API")
 
 @app.get("/tools")

@@ -1,9 +1,11 @@
 import streamlit as st
-from tools.examples.text_tools import TextCaseConverter
+from tools.core.text_tools import TextCaseConverter
 from utils.registry import registry
+from tools.core.url_tools import URLEncoder
 
 # Register tools
 registry.register(TextCaseConverter)
+registry.register(URLEncoder)
 
 def main():
     st.set_page_config(
@@ -22,7 +24,6 @@ def main():
         options=list(tools.keys()),
         format_func=lambda x: tools[x].__name__
     )
-
     # Create and render selected tool
     if tool_name:
         tool = tools[tool_name]()
