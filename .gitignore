@@ -1,0 +1,5 @@
+venv
+.venv
+.windsurfrules
+*.log
+__pycache__

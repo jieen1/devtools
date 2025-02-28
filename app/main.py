@@ -9,6 +9,7 @@ from tools.core.url_tools import URLEncoder
 from tools.core.json_tools import JSONTool
 from tools.core.crypto_tools import CryptoTool
 from tools.core.class_generator import ClassGenerator
+from tools.core.pdf_excel_tools import PDFToExcelConverter
 
 # Register tools
 registry.register(TextCaseConverter)
@@ -16,6 +17,7 @@ registry.register(URLEncoder)
 registry.register(JSONTool)
 registry.register(CryptoTool)
 registry.register(ClassGenerator)
+registry.register(PDFToExcelConverter)
 
 def main():
     st.set_page_config(

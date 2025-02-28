@@ -6,12 +6,14 @@ from app.tools.core.url_tools import URLEncoder
 from app.tools.core.json_tools import JSONTool
 from app.tools.core.crypto_tools import CryptoTool
 from app.tools.core.class_generator import ClassGenerator
+from app.tools.core.pdf_excel_tools import PDFToExcelConverter
 
 registry.register(TextCaseConverter)
 registry.register(URLEncoder)
 registry.register(JSONTool)
 registry.register(CryptoTool)
 registry.register(ClassGenerator)
+registry.register(PDFToExcelConverter)
 app = FastAPI(title="DevTools Hub API")
 
 @app.get("/tools")
