@@ -29,6 +29,10 @@ tool collection for develops with web &amp; api access
      .\venv\Scripts\Activate.ps1
      ```
      *Note: You might need to enable script execution with `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`*
+   - Linux/macOS: 
+     ```
+     source venv/bin/activate
+     ```
 
 3. Install dependencies:
    ```
@@ -38,11 +42,21 @@ tool collection for develops with web &amp; api access
 4. Run the app (choose one of the following options):
 
    a) **Web UI** (Streamlit interface):
+   - Windows:
+   ```
+   streamlit run app/main.py
+   ```
+   - Linux/macOS:
    ```
    streamlit run app/main.py
    ```
 
    b) **API Server** (FastAPI):
+   - Windows:
+   ```
+   python run_api.py
+   ```
+   - Linux/macOS:
    ```
    python run_api.py
    ```
@@ -50,10 +64,83 @@ tool collection for develops with web &amp; api access
 
 ### Without Virtual Environment
 
-1. Install dependencies: `pip install -r requirements.txt`
+1. Install dependencies: 
+   - Windows: `pip install -r requirements.txt`
+   - Linux/macOS: `pip install -r requirements.txt`
 2. Run the app (choose one):
-   - Web UI: `streamlit run app/main.py`
-   - API Server: `python run_api.py`
+   - Web UI: 
+     - Windows: `streamlit run app/main.py`
+     - Linux/macOS: `streamlit run app/main.py`
+   - API Server: 
+     - Windows: `python run_api.py`
+     - Linux/macOS: `python run_api.py`
+
+### Running as a Service on Linux
+
+To run the application as a service on Linux, you can use systemd:
+
+1. Create a service file:
+   ```bash
+   sudo nano /etc/systemd/system/devtools.service
+   ```
+
+2. Add the following content (adjust paths as needed):
+   ```
+   [Unit]
+   Description=DevTools Hub
+   After=network.target
+
+   [Service]
+   User=<your-username>
+   WorkingDirectory=/path/to/devtools
+   ExecStart=/path/to/devtools/venv/bin/python -m streamlit run app/main.py --server.headless=true --server.port=8501
+   Restart=always
+   RestartSec=5
+   StandardOutput=journal
+   StandardError=journal
+
+   [Install]
+   WantedBy=multi-user.target
+   ```
+
+3. For the API server, create a separate service file:
+   ```bash
+   sudo nano /etc/systemd/system/devtools-api.service
+   ```
+
+4. Add the following content:
+   ```
+   [Unit]
+   Description=DevTools Hub API
+   After=network.target
+
+   [Service]
+   User=<your-username>
+   WorkingDirectory=/path/to/devtools
+   ExecStart=/path/to/devtools/venv/bin/python run_api.py
+   Restart=always
+   RestartSec=5
+   StandardOutput=journal
+   StandardError=journal
+
+   [Install]
+   WantedBy=multi-user.target
+   ```
+
+5. Enable and start the services:
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl enable devtools.service
+   sudo systemctl start devtools.service
+   sudo systemctl enable devtools-api.service
+   sudo systemctl start devtools-api.service
+   ```
+
+6. Check status:
+   ```bash
+   sudo systemctl status devtools.service
+   sudo systemctl status devtools-api.service
+   ```
 
 ## API Endpoints
 
