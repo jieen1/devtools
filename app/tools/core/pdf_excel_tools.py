@@ -8,6 +8,7 @@ import os
 import re
 import time
 import logging
+import pdfplumber
 from typing import Dict, Any, List
 from ..base import BaseTool, ToolResult
 
@@ -138,6 +139,127 @@ class PDFToExcelConverter(BaseTool):
                                     sheet_name = sheet_name[:31]
                                 logger.debug(f"Writing table {i+1} to sheet: {sheet_name}")
                                 table.to_excel(writer, sheet_name=sheet_name, index=False)
+            
+            elif extraction_method == 'pdfplumber':
+                # Use pdfplumber for table extraction
+                logger.debug(f"Using pdfplumber to extract tables from {pdf_file}")
+                
+                try:
+                    tables = []
+                    page_numbers = []
+                    
+                    with pdfplumber.open(pdf_file, password=password if password else None) as pdf:
+                        if pages == 'all':
+                            page_range = range(len(pdf.pages))
+                        else:
+                            # Convert pages string to list of page numbers
+                            page_list = [int(p) for p in pages.split(',')]
+                            page_range = [p-1 for p in page_list if 0 < p <= len(pdf.pages)]
+                        
+                        for page_num in page_range:
+                            if page_num < len(pdf.pages):
+                                page = pdf.pages[page_num]
+                                extracted_tables = page.extract_tables()
+                                
+                                for table in extracted_tables:
+                                    if table and len(table) > 0:
+                                        # Use first row as header
+                                        headers = table[0]
+                                        data = table[1:]
+                                        
+                                        # Create DataFrame
+                                        df = pd.DataFrame(data, columns=headers)
+                                        
+                                        # Clean up the DataFrame - remove empty rows and columns
+                                        df = df.dropna(how='all').reset_index(drop=True)
+                                        df = df.dropna(axis=1, how='all')
+                                        
+                                        # Add to tables list if not empty
+                                        if not df.empty:
+                                            tables.append(df)
+                                            page_numbers.append(page_num + 1)
+                    
+                    logger.debug(f"Extracted {len(tables)} tables from PDF using pdfplumber")
+                    
+                    if not tables:
+                        logger.warning("No tables found in the PDF with pdfplumber")
+                        return ToolResult(
+                            success=False, 
+                            message="No tables found in the PDF using pdfplumber", 
+                            data=None
+                        )
+                    
+                    # Process the tables - similar to tabula section
+                    if merge_tables and len(tables) > 0:
+                        logger.debug("Attempting to merge tables")
+                        
+                        # Check for duplicate columns and make them unique
+                        for i in range(len(tables)):
+                            # Check if there are any duplicate column names
+                            if tables[i].columns.duplicated().any():
+                                logger.debug(f"Table {i+1} has duplicate columns, making them unique")
+                                # Make columns unique by appending a suffix
+                                tables[i].columns = self._make_unique_columns(tables[i].columns)
+                        
+                        try:
+                            # Merge all tables into a single dataframe
+                            logger.debug("Merging tables into a single DataFrame")
+                            merged_df = pd.concat(tables, ignore_index=True)
+                            logger.debug(f"Merged DataFrame has shape: {merged_df.shape}")
+                            
+                            # Write to Excel
+                            logger.debug(f"Writing merged DataFrame to Excel: {temp_excel_path}")
+                            with pd.ExcelWriter(temp_excel_path) as writer:
+                                merged_df.to_excel(writer, sheet_name='Merged_Tables', index=False)
+                                
+                        except ValueError as e:
+                            # If merging still fails, write each table to a separate sheet
+                            error_msg = str(e)
+                            logger.warning(f"Error merging tables: {error_msg}. Writing tables to separate sheets.")
+                            with pd.ExcelWriter(temp_excel_path) as writer:
+                                for i, table in enumerate(tables):
+                                    if not table.empty:
+                                        # Ensure no duplicate column names
+                                        if table.columns.duplicated().any():
+                                            logger.debug(f"Table {i+1} has duplicate columns, making them unique")
+                                            table.columns = self._make_unique_columns(table.columns)
+                                        sheet_name = f'Table_Page{page_numbers[i]}'
+                                        if len(sheet_name) > 31:  # Excel sheet name length limit
+                                            sheet_name = sheet_name[:31]
+                                        logger.debug(f"Writing table {i+1} from page {page_numbers[i]} to sheet: {sheet_name}")
+                                        table.to_excel(writer, sheet_name=sheet_name, index=False)
+                                
+                            return ToolResult(
+                                success=True, 
+                                data=self._read_excel_to_memory(temp_excel_path),
+                                message=f"Tables could not be merged due to inconsistent structures. Each table has been saved as a separate sheet. Error: {error_msg}"
+                            )
+                    else:
+                        # Write each table to a separate sheet
+                        logger.debug("Writing each table to a separate sheet")
+                        with pd.ExcelWriter(temp_excel_path) as writer:
+                            for i, table in enumerate(tables):
+                                if not table.empty:
+                                    # Ensure no duplicate column names
+                                    if table.columns.duplicated().any():
+                                        logger.debug(f"Table {i+1} has duplicate columns, making them unique")
+                                        table.columns = self._make_unique_columns(table.columns)
+                                    sheet_name = f'Table_Page{page_numbers[i]}'
+                                    if len(sheet_name) > 31:  # Excel sheet name length limit
+                                        sheet_name = sheet_name[:31]
+                                    logger.debug(f"Writing table {i+1} from page {page_numbers[i]} to sheet: {sheet_name}")
+                                    table.to_excel(writer, sheet_name=sheet_name, index=False)
+                    
+                except Exception as e:
+                    error_msg = str(e)
+                    logger.error(f"Error in pdfplumber extraction: {error_msg}")
+                    if "password" in error_msg.lower():
+                        return ToolResult(
+                            success=False, 
+                            message="This PDF is password protected. Please provide the correct password.", 
+                            data=None
+                        )
+                    raise e
             
             elif extraction_method == 'text':
                 # Use PyPDF2 for text extraction
@@ -275,9 +397,9 @@ class PDFToExcelConverter(BaseTool):
         with col1:
             extraction_method = st.selectbox(
                 "Extraction Method", 
-                ["tabula", "text"], 
+                ["tabula", "pdfplumber", "text"], 
                 index=0,
-                help="Tabula: Extract structured tables. Text: Extract all text content."
+                help="Tabula: Extract structured tables (requires Java). PDFPlumber: Alternative table extraction. Text: Extract all text content."
             )
         
         with col2:
